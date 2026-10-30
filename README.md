@@ -7,6 +7,9 @@
 
 `Windows` · `Python 3.10+` · `MIT`
 
+**[下载安装包](https://github.com/cyberironman/ChromeDual/releases/latest)** —— 双击装完就能用，不需要装 Python；
+缺内核、缺运行时会自己提示并一键补齐。
+
 </div>
 
 ---
