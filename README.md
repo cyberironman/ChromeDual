@@ -280,6 +280,8 @@ Chrome 127 之后 Cookie 用应用绑定加密（ABE），密文里写进了 `--
 - 托盘：[pystray](https://github.com/morningspace/pystray) · 面板：[pywebview](https://github.com/r0x0r/pywebview)
 
 本项目以 MIT 协议开源，详见 [LICENSE](LICENSE)。
+内核二进制、WebView2、Chrome 等第三方组件的授权与分发说明见 [NOTICE.md](NOTICE.md) ——
+**仓库与 Release 里都不含任何代理内核二进制**。
 
 > 如果这套东西对你有用，欢迎提 issue、给 star、或者直接拿去改。
 > 你自己的订阅、网址、账号永远留在你自己机器上。
