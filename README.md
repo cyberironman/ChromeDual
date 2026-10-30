@@ -61,38 +61,62 @@
 
 ## 快速开始
 
-### 1. 准备内核
+### 方式 A：装 exe（推荐，不需要装 Python）
 
-本程序只管调度，代理内核请自备（**仓库里不放二进制**）：
+1. 到 [Releases](https://github.com/cyberironman/ChromeDual/releases) 下载 `ChromeDual-Setup-x.y.z.exe`
+2. 双击 → 回车确认安装位置 → 装完自动启动
+3. 右下角出现托盘图标，右键 → 打开控制面板
 
-- **xray.exe** — [XTLS/Xray-core](https://github.com/XTLS/Xray-core/releases) 的 `Xray-windows-64.zip`
-- **wintun.dll** — [WireGuard/wintun](https://github.com/WireGuard/wintun/releases)（只在需要 TUN 时用）
+安装器会顺手处理掉这些麻烦事：
 
-解压后放到：
+- 缺 **WebView2 运行时** → 问一句，然后从微软官网静默装（控制面板靠它渲染）
+- 缺 **Xray 内核** → 首次启动时提示并自动下载
+- 桌面 / 开始菜单快捷方式、卸载项（「设置 → 应用」里能正常卸载）
 
+> 重装或升级**不会**动你的 `config\`、`data\`、`var\` —— 登录态、Chrome 资料、备份都在。
+
+### 方式 B：免安装 zip
+
+下载 `ChromeDual-x.y.z-portable.zip`，解压到**固定文件夹**（别放「下载」或临时目录），
+双击 `ChromeDual.exe`。
+
+### 方式 C：从源码跑（改代码 / 自己编）
+
+需要 Python 3.10 以上。
+
+```bat
+pip install -r requirements.txt
+python ChromeDual.py
 ```
-bin/
-├─ xray.exe
-└─ wintun.dll
-```
+
+> 少装了库也不用自己记包名：启动时会弹一个窗口把缺的列出来，点「是」自动装好再继续。
+
+首次运行自动生成 `config\profiles.json`（从 `config\profiles.example.json` 复制）。
+托盘图标出现 → 右键打开主面板 → 点线路图标开窗。
+
+想自己打 exe 发版：看 [`docs/打包与发布.md`](docs/打包与发布.md)，一条命令搞定。
+
+### 内核从哪来
+
+仓库里不放 `bin\*.exe`（36 MB 的二进制会让 `git clone` 变得很痛苦），三种办法任选：
+
+1. **让它自己下**：启动时缺内核会问一句，点是就从 [XTLS/Xray-core](https://github.com/XTLS/Xray-core/releases) 拉最新的 `Xray-windows-64.zip` 并解出 `xray.exe`
+2. **手动放**：下载后解压出 `xray.exe`，源码版放 `bin\xray.exe`，exe 版放安装目录的 `bin\`
+3. **要 TUN 模式**再额外放一份 `wintun.dll`（[WireGuard/wintun](https://github.com/WireGuard/wintun/releases)）
 
 > 没有内核也能先跑起来：程序会生成一份**占位直连配置**，窗口能开、软件能点，
 > 但不翻墙。日志会明确提示缺什么、怎么补。
 
-### 2. 安装依赖
+### 依赖体检
+
+任何时候想确认环境齐没齐：
 
 ```bat
-pip install -r requirements.txt
+ChromeDual.exe --check
 ```
 
-### 3. 运行
-
-```bat
-python ChromeDual.py
-```
-
-首次运行会自动生成 `config/profiles.json`（从 `config/profiles.example.json` 复制）。
-托盘图标出现 → 右键打开主面板 → 点线路图标开窗。
+exe 版没有控制台，所以它会把报告同时写到 `var\logs\deps-check.txt`。
+「双击没反应」的时候第一个该看的就是这个文件。
 
 ### 4. 接入你自己的线路（可选）
 

@@ -1,0 +1,4 @@
+{
+  "line": "profile-a",
+  "_说明": "系统默认浏览器（点微信 / QQ / Word 里的链接）走哪条线路。\n改这个文件即可换线路，不用改代码、不用重新注册。\n可选值 = config/profiles.json 里任意一条 line 的 id；写 direct = 直连资料 + PAC 分流。\n留空则自动用 profiles.json 里的第一条线路。"
+}

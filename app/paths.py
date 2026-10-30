@@ -16,24 +16,74 @@
 from __future__ import annotations
 
 import os
+import shutil
 import sys
 from pathlib import Path
 
-# 包在 <根>\app\ 下，所以根是上两层
-ROOT = Path(__file__).resolve().parent.parent
+#: 是不是 PyInstaller 打包出来的 exe
+FROZEN = bool(getattr(sys, "frozen", False))
 
-APP = ROOT / "app"
-CONFIG = ROOT / "config"
-BIN = ROOT / "bin"
-ASSETS = ROOT / "assets"
-DATA = ROOT / "data"
-VAR = ROOT / "var"
-TOOLS = ROOT / "tools"
+if FROZEN:
+    # 打包形态：exe 在哪，程序根就在哪（绿色版习惯，整个文件夹随拷随用）
+    ROOT = Path(sys.executable).resolve().parent
+    # 只读资源（assets / bin / config 里的 *.example.json / panel.html）
+    # 被 PyInstaller 塞在临时解包目录里，和 exe 不是同一个地方
+    RES = Path(getattr(sys, "_MEIPASS", ROOT))
+else:
+    # 源码形态：app/paths.py 往上两层就是项目根
+    ROOT = Path(__file__).resolve().parent.parent
+    RES = ROOT
+
+
+def _writable(path: Path) -> bool:
+    """这个目录能不能写。
+
+    ★ 不用「写一个探针文件再删掉」那种写法 —— 删除动作在受限环境里会被拦，
+      直接把启动流程搞崩。`os.access(W_OK)` 无副作用。
+    """
+    try:
+        return path.is_dir() and os.access(path, os.W_OK)
+    except OSError:
+        return False
+
+
+def _resolve_data_root() -> Path:
+    """用户数据（资料目录、日志、备份、配置）放哪。
+
+    优先级：
+      1. 环境变量 CHROMEDUAL_HOME —— 给「数据放别的盘」的人留的开关
+      2. exe 所在目录可写 → 就放旁边（绿色版：U 盘、桌面随手拷）
+      3. 装到了 Program Files 这类只读位置 → %LOCALAPPDATA%\\ChromeDual
+
+    ★ 源码形态下 ROOT 一定可写，所以行为和以前完全一致。
+    """
+    env = os.environ.get("CHROMEDUAL_HOME", "").strip()
+    if env:
+        return Path(env).expanduser().resolve()
+    if _writable(ROOT):
+        return ROOT
+    base = os.environ.get("LOCALAPPDATA") or str(Path.home())
+    return Path(base) / "ChromeDual"
+
+
+DATA_ROOT = _resolve_data_root()
+
+APP = RES / "app"                      # 代码 + panel.html（打包形态在只读资源里）
+CONFIG = DATA_ROOT / "config"          # 用户自己的配置（可写）
+CONFIG_RES = RES / "config"            # 仓库里的模板（只读）
+BIN = RES / "bin"                      # 程序自带的只读副本（打包形态在 _internal 里）
+BIN_DATA = DATA_ROOT / "bin"           # 运行期真正用的内核（可写、可换版本、可下载）
+ASSETS = RES / "assets"
+DATA = DATA_ROOT / "data"
+VAR = DATA_ROOT / "var"
+TOOLS = RES / "tools"
 
 PROFILES = CONFIG / "profiles.json"
-PROFILES_EXAMPLE = CONFIG / "profiles.example.json"
+PROFILES_EXAMPLE = CONFIG_RES / "profiles.example.json"
 TARGETS = CONFIG / "targets.json"
+TARGETS_EXAMPLE = CONFIG_RES / "targets.example.json"
 SYSDEFAULT = CONFIG / "sysdefault.json"
+SYSDEFAULT_EXAMPLE = CONFIG_RES / "sysdefault.example.json"
 
 CHROME_DATA = DATA / "chrome"
 SOURCE_DATA = DATA / "source"
@@ -50,14 +100,22 @@ ICON_ALT = ASSETS / "icons" / "guard.ico"
 PAC_DIR = ASSETS / "pac"
 START_PAGE = ASSETS / "start" / "index.html"
 
-XRAY = BIN / "xray.exe"
+# 内核：一律指向**可写**位置。打包形态下 _internal\\bin 是只读资源，
+# 不能用它当运行内核 —— 换版本、下载、权限都会卡在那儿。
+# 首次启动时 ensure_core() 会把自带的那份复制过来。
+XRAY = BIN_DATA / "xray.exe"
 
-# 主入口：优先英文名（跨平台/跨文件系统都稳），兼容旧的中文名
-ENTRY = ROOT / "ChromeDual.py"
-if not ENTRY.is_file():
-    _alt = ROOT / "Chrome代理管家.py"
-    if _alt.is_file():
-        ENTRY = _alt
+# 主入口：源码形态是 .py；打包形态就是 exe 自己。
+# 外面一律通过 app/selfrun.py 来「再拉起自己」，不要直接拿 ENTRY 拼命令行 ——
+# 源码形态前面得挂 pythonw.exe，打包形态绝不能挂，混了就会变成「找不到文件」。
+if FROZEN:
+    ENTRY = Path(sys.executable).resolve()
+else:
+    ENTRY = ROOT / "ChromeDual.py"
+    if not ENTRY.is_file():
+        _alt = ROOT / "Chrome代理管家.py"
+        if _alt.is_file():
+            ENTRY = _alt
 
 
 # ------------------------------------------------------------ Chrome 在哪
@@ -141,26 +199,62 @@ def expand(value):
 
 
 def ensure_dirs() -> None:
-    """启动时把必需的目录建出来（幂等）。"""
-    for d in (APP, CONFIG, BIN, ASSETS, DATA, CHROME_DATA, SOURCE_DATA,
-              VAR, LOGS, BACKUPS, RUNTIME, RUN, STATE, PAC_DIR):
+    """启动时把必需的可写目录建出来（幂等）。
+
+    注意只建 DATA_ROOT 底下的 —— ASSETS / BIN 是程序自带的只读资源，
+    打包形态下压根不在 exe 旁边，去那儿 mkdir 只会白白报错。
+    """
+    for d in (CONFIG, DATA, CHROME_DATA, SOURCE_DATA, BIN_DATA,
+              VAR, LOGS, BACKUPS, RUNTIME, RUN, STATE):
         d.mkdir(parents=True, exist_ok=True)
 
 
+def _seed(target: Path, template: Path) -> bool:
+    """模板 → 用户配置。已存在就不动（绝不覆盖用户改过的东西）。"""
+    if target.is_file() or not template.is_file():
+        return False
+    CONFIG.mkdir(parents=True, exist_ok=True)
+    target.write_text(template.read_text(encoding="utf-8"), encoding="utf-8")
+    return True
+
+
 def ensure_profiles() -> bool:
-    """第一次运行：把 config/profiles.example.json 变成 config/profiles.json。
+    """第一次运行：把 config/*.example.json 变成真正的 config/*.json。
 
     仓库里只放模板（没有任何个人信息），真实配置在本地生成，
     并且已经写进 .gitignore —— 你的订阅地址、网址列表不会跟着代码传上去。
     返回 True 表示「这次是新生成的」，调用方可以据此提示用户。
     """
-    if PROFILES.is_file():
+    created = _seed(PROFILES, PROFILES_EXAMPLE)
+    _seed(TARGETS, TARGETS_EXAMPLE)
+    _seed(SYSDEFAULT, SYSDEFAULT_EXAMPLE)
+    return created
+
+
+def ensure_core() -> bool:
+    """把内核 xray.exe 就位到可写位置。返回 True = 现在有内核能用。
+
+    三种情形：
+      1. 可写位置已经有了 → 直接用（用户自己换过版本也认）
+      2. 程序自带了一份（打包形态必然带 / 源码 clone 时也可能带）→ 复制过来
+      3. 都没有（从 GitHub 下载的源码没有 bin/*.exe，因为太大了不进仓库）
+         → 返回 False，由 app/deps.py 负责下载，或提示用户手动放
+    """
+    try:
+        if XRAY.is_file():
+            return True
+        src = BIN / "xray.exe"
+        if not src.is_file():
+            return False
+        BIN_DATA.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(src, XRAY)
+        try:
+            os.chmod(XRAY, 0o755)
+        except OSError:
+            pass
+        return XRAY.is_file()
+    except OSError:
         return False
-    if not PROFILES_EXAMPLE.is_file():
-        return False
-    CONFIG.mkdir(parents=True, exist_ok=True)
-    PROFILES.write_text(PROFILES_EXAMPLE.read_text(encoding="utf-8"), encoding="utf-8")
-    return True
 
 
 # ---------------------------------------------------------------- 按线路取目录

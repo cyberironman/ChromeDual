@@ -18,7 +18,7 @@ from pathlib import Path
 import pystray
 from PIL import Image, ImageDraw
 
-from app import paths, ports
+from app import paths, ports, selfrun
 from app.guard import Guard
 from app.logging_setup import log, setup_logging
 
@@ -507,13 +507,12 @@ class App:
             # 必须用 WScript.Shell 建 lnk：pylnk3 的 for_file() 写死 link_info=None，
             # 生成的 lnk 没有 LinkInfo 段，资源管理器定位会直接打开 System32（踩过）。
             import win32com.client
-            pythonw = Path(sys.executable).with_name("pythonw.exe")
-            exe = pythonw if pythonw.exists() else Path(sys.executable)
+            exe, argv, workdir = selfrun.shortcut_target()
             sh = win32com.client.Dispatch("WScript.Shell")
             item = sh.CreateShortcut(str(lnk))
-            item.TargetPath = str(exe)
-            item.Arguments = f'"{paths.ENTRY}"'
-            item.WorkingDirectory = str(paths.ROOT)
+            item.TargetPath = exe
+            item.Arguments = argv
+            item.WorkingDirectory = workdir
             ico = paths.ICON if paths.ICON.is_file() else paths.ICON_ALT
             item.IconLocation = (str(ico) if ico.is_file() else str(exe)) + ",0"
             item.Description = "Chrome 代理管家（托盘）"

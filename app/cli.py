@@ -17,7 +17,7 @@ import sys
 import time
 from pathlib import Path
 
-from app import paths, ports
+from app import paths, ports, selfrun
 
 CREATE_NO_WINDOW = 0x08000000
 
@@ -45,13 +45,9 @@ def send(cmd: str, timeout: float = 3.0) -> str | None:
 def ensure_running(wait: float = 25.0) -> bool:
     if send("ping", 1.0) is not None:
         return True
-    pythonw = Path(sys.executable).with_name("pythonw.exe")
-    exe = pythonw if pythonw.exists() else Path(sys.executable)
+    # 交给 selfrun 拼命令行：源码形态挂 pythonw.exe，打包形态直接起 exe
     try:
-        subprocess.Popen([str(exe), str(paths.ENTRY)], cwd=str(paths.ROOT),
-                         creationflags=CREATE_NO_WINDOW,
-                         stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
-                         stderr=subprocess.DEVNULL)
+        selfrun.spawn([])
     except Exception:  # noqa: BLE001
         return False
     deadline = time.time() + wait

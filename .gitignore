@@ -6,10 +6,11 @@ var/
 # ---- 本地配置（含订阅地址、网址列表，属于个人信息）----------------------
 config/profiles.json
 config/targets.json
+config/sysdefault.json
 config/chrome-proxy.config.json
 data/source/*/chrome-proxy.config.json
 
-# ---- 内核二进制（体积大，各平台自己下载，见 README）--------------------
+# ---- 内核二进制（体积大，不进仓库；首次启动会自动下载，见 README）------
 bin/*.exe
 bin/*.dll
 
@@ -22,9 +23,18 @@ venv/
 env/
 
 # ---- 打包产物 -----------------------------------------------------------
-build/
-dist/
+# build*/ dist*/ 用通配：受限环境里删不掉旧输出目录时，build.py 会改名让路
+# （dist_old_2141 这种），这些也一律不进仓库。
+build*/
+dist*/
+release/
+test_install*/
 *.spec
+# 例外：构建用的 spec 是源码的一部分，必须进仓库
+!installer/ChromeDual.spec
+!installer/ChromeDual-Setup.spec
+build_*.log
+.gitmsg.txt
 
 # ---- 编辑器 / 系统 ------------------------------------------------------
 .vscode/

@@ -303,7 +303,7 @@ class Line:
             log.error("[%s] 配置生成脚本不存在：%s", self.name, script)
             return False
         py = self.build.get("python") or sys.executable
-        args = [str(py), str(script), "--out", str(self.config)]
+        argv = [str(script), "--out", str(self.config)]
         for k, v in self.build.get("args", {}).items():
             # 端口是随机分配的：配置里写死的 http-port / socks-port 必须换成当前值，
             # 否则生成出来的配置会绑回老端口（10898 那一批）。
@@ -311,8 +311,15 @@ class Line:
                 v = self.http_port
             elif k in ("socks-port", "socks_port") and self.http_port:
                 v = self.socks_port
-            args += [f"--{k}", str(v)]
-        log.info("[%s] 生成配置：%s", self.name, " ".join(args))
+            argv += [f"--{k}", str(v)]
+        log.info("[%s] 生成配置：%s", self.name, " ".join(argv))
+
+        # 打包形态没有独立 Python 解释器：拿 ChromeDual.exe 当解释器去跑 .py
+        # 只会得到「找不到文件」。这些生成脚本只依赖标准库，所以直接在本进程里跑。
+        if paths.FROZEN:
+            return self._run_build_inproc(script, argv)
+
+        args = [str(py)] + argv
         try:
             p = subprocess.run(args, cwd=str(script.parent), capture_output=True,
                                text=True, encoding="utf-8", errors="replace", timeout=300,
@@ -326,6 +333,35 @@ class Line:
             return False
         if p.stderr:
             log.debug("[%s] build err: %s", self.name, p.stderr.strip()[-800:])
+        self._normalize_config()
+        return True
+
+    def _run_build_inproc(self, script: Path, argv: list[str]) -> bool:
+        """打包形态下在**本进程内**执行配置生成脚本。
+
+        脚本只依赖标准库，用 runpy 按 `__main__` 跑一遍和 subprocess 效果一样，
+        但没有「需要一个额外 Python 解释器」的前置条件 —— 这正是 exe 版最缺的东西。
+        """
+        import runpy
+
+        old_argv = sys.argv
+        sys.argv = list(argv)
+        try:
+            runpy.run_path(str(script), run_name="__main__")
+        except SystemExit as e:            # 脚本自己 sys.exit(0) 是正常结束
+            code = e.code if isinstance(e.code, int) else (0 if e.code is None else 1)
+            if code != 0:
+                log.error("[%s] 配置生成脚本退出码 %s", self.name, code)
+                return False
+        except Exception:  # noqa: BLE001
+            log.exception("[%s] 配置生成脚本异常", self.name)
+            return False
+        finally:
+            sys.argv = old_argv
+
+        if not self.config.is_file():
+            log.error("[%s] 配置生成脚本跑完了，但没产出 %s", self.name, self.config)
+            return False
         self._normalize_config()
         return True
 
