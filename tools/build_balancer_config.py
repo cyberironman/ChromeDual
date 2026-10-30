@@ -16,7 +16,7 @@
 
 用法：
     python build_balancer_config.py
-    python build_balancer_config.py --root D:\\ChromeDual\\Love --http-port 23456 --socks-port 23457
+    python build_balancer_config.py --root data\\source\\profile-a --http-port 23456 --socks-port 23457
     python build_balancer_config.py --no-probe        # 跳过探测，直接用该国全部节点
 退出码 0 = 生成成功。
 

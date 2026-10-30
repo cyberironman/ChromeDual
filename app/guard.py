@@ -275,7 +275,7 @@ class Guard:
         for l in self._ordered_lines(target):
             # 这里只关心「这条线能不能把站点打开」，不是「它归不归管家管」。
             # 所以端口通就试 —— 刚起来的（starting）也算，否则一启动就误判全线不通，
-            # 白白触发一次节点重建（踩过：面板显示 love 未运行、其实只是还没起完）。
+            # 白白触发一次节点重建（踩过：面板显示某条线未运行、其实只是还没起完）。
             if not l.port_up() and autostart and l.enabled:
                 if self._busy.locked():
                     tried.append(f"{l.name}:正在忙，先跳过")

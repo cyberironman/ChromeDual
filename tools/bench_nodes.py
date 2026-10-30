@@ -38,10 +38,15 @@ import urllib.parse
 import urllib.request
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.dirname(HERE)
 sys.path.insert(0, HERE)
+sys.path.insert(0, ROOT)
 import build_balancer_config as bbc  # noqa: E402
+from app import paths  # noqa: E402
 
-XRAY = r"E:\V2RAYN7.24.3\v2rayN-windows-64\bin\xray\xray.exe"
+#: 内核路径由 app.paths 统一决定（环境变量 CHROMEDUAL_XRAY 可覆盖），
+#: 不写死任何人的安装位置 —— 以前这里硬编码过一个 v2rayN 目录，换台机器就跑不了。
+XRAY = os.environ.get("CHROMEDUAL_XRAY") or str(paths.XRAY)
 SUB = bbc.DEFAULT_SUB
 
 # 测速目标：youtube 首页约 950KB，够代表真实浏览吞吐，且经 Worker 出去一定可达

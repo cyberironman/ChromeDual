@@ -269,9 +269,9 @@ class Line:
     def _normalize_config(self) -> None:
         """把内核配置里的日志路径统一指到 var\\logs\\<线路>-core.log。
 
-        xray 的 log.error 是写在配置里的绝对路径，以前三条线各写各的
-        （D:\\ChromeDual\\xray-core.log、D:\\ChromeDual\\us-core.log、Love\\xray-core.log），
-        排障时根本不知道该看哪个文件。
+        xray 的 log.error 是写在配置里的绝对路径，以前每条线各写各的
+        （有的写到程序目录、有的写到线路数据目录），排障时根本不知道该看哪个文件。
+        现在统一指到 <数据目录>\\var\\logs\\<线路>-core.log。
         """
         if not self.config.is_file():
             return

@@ -1,6 +1,7 @@
 // Chrome「直连」模式分流规则
 // 作用：网页一律 DIRECT（直连），只有 Google 账号/同步相关域名走本地代理。
-// 用法：chrome.exe --proxy-pac-url="file:///D:/ChromeDual/split-direct.pac"
+// 用法：chrome.exe --proxy-pac-url="file:///<数据目录>/var/runtime/pac/split.pac"
+//       （这是模板；运行时会按本次随机端口渲染到 var/runtime/pac/ 再被使用）
 // 说明：端口用占位符，由管家启动时按本次随机分配的值渲染。
 //       若改了端口，这里要同步改。
 

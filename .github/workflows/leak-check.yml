@@ -1,0 +1,27 @@
+name: 泄漏自检
+
+# 个人项目转开源，最容易翻车的不是代码，是「开发过程留下的痕迹」：
+# 真实线路名、自己机器上的绝对路径、订阅地址、被 gitignore 却仍在跟踪的配置。
+# 这个 workflow 只做一件事：每次提交都跑一遍 tools/检查残留.py。
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  leak-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 跑自检
+        run: python tools/检查残留.py
+
+      - name: 语法检查
+        run: python -m compileall -q app Tray tools installer ChromeDual.py

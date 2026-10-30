@@ -628,7 +628,7 @@ class App:
         self._notify(
             "Chrome 代理管家",
             f"Chrome 从 {old} 升级到 {new}。已给 {done} 份资料留了登录态快照 —— "
-            f"升级可能让网站掉登录，掉了就用「tools\\恢复登录状态.py」回滚。")
+            f"升级可能让网站掉登录，掉了就用「tools\\救回登录.py」回滚。")
 
     def _delayed_start(self) -> None:
         """管家起来的默认姿态：**只待机，不预热任何内核**。

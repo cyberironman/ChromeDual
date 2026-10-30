@@ -17,7 +17,7 @@
 
 用法：
     from app import safety
-    bak = safety.guard("恢复登录态", line_id="love", udd=..., assume_yes=args.yes)
+    bak = safety.guard("恢复登录态", line_id="profile-a", udd=..., assume_yes=args.yes)
     # 抛 safety.Refused 就说明被拦下了，调用方把原因原样告诉用户即可
 """
 from __future__ import annotations
