@@ -1,0 +1,17 @@
+{
+  "targets": [
+    {
+      "id": "example",
+      "name": "示例重点网址（改成你自己的）",
+      "url": "https://www.gstatic.com/generate_204",
+      "min_bytes": 0,
+      "must_contain": "",
+      "prefer": [
+        "profile-a",
+        "profile-b"
+      ],
+      "rebuild": ""
+    }
+  ],
+  "_说明": "重点网址 = 你每天必开、且必须能打开的那几个站。\n管家点「按重点网址打开」时会依次拿 prefer 里的线路去试，谁能打开就用谁，\n并顺手把不能打开的那条线路重建一次。\nmin_bytes：正文至少多大的字节数才算真的打开（防 Cloudflare 回 200 + 空壳）。\nmust_contain：正文里必须出现的字样，留空表示不校验。\n这个文件不进仓库（含你的私人网站列表），示例见 config/targets.example.json。"
+}

@@ -1,0 +1,16 @@
+# 运行时依赖（Python 3.10+）
+#
+# 安装：pip install -r requirements.txt
+#
+# 说明：
+#   * pystray  —— 托盘图标与右键菜单
+#   * pywebview —— 控制面板窗口（用系统自带的 Edge WebView2 渲染）
+#   * psutil   —— 进程识别（区分「我们自己的内核」和「别人占着端口」）
+#   * pillow   —— 生成托盘图标（PNG → ICO）
+#
+# 除此之外只用标准库。
+
+pystray>=0.19.5
+pywebview>=4.4
+psutil>=5.9
+pillow>=10.0

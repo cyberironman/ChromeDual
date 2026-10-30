@@ -1,0 +1,35 @@
+# ---- 本地数据（绝不进仓库）-------------------------------------------
+data/
+var/
+*.log
+
+# ---- 本地配置（含订阅地址、网址列表，属于个人信息）----------------------
+config/profiles.json
+config/targets.json
+config/chrome-proxy.config.json
+data/source/*/chrome-proxy.config.json
+
+# ---- 内核二进制（体积大，各平台自己下载，见 README）--------------------
+bin/*.exe
+bin/*.dll
+
+# ---- Python -------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# ---- 打包产物 -----------------------------------------------------------
+build/
+dist/
+*.spec
+
+# ---- 编辑器 / 系统 ------------------------------------------------------
+.vscode/
+.idea/
+*.swp
+Thumbs.db
+desktop.ini
+.DS_Store

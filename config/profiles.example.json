@@ -1,0 +1,70 @@
+{
+  "defaults": {
+    "chrome": "",
+    "xray": "${ROOT}/bin/xray.exe",
+    "health_url": "https://www.gstatic.com/generate_204",
+    "keepalive_seconds": 30,
+    "target_interval": 120,
+    "idle_stop_seconds": 120
+  },
+  "pac_server": {
+    "directory": "${ROOT}/assets/pac",
+    "port": 0,
+    "video_line": "profile-a",
+    "default_line": "profile-b"
+  },
+  "lines": [
+    {
+      "id": "profile-a",
+      "name": "资料 A",
+      "enabled": true,
+      "config": "xray-runtime.json",
+      "http_port": 0,
+      "chrome": {
+        "user_data_dir": "${ROOT}/data/chrome/profile-a",
+        "profile_directory": "Default",
+        "use_startup_urls": true,
+        "startup_urls": [],
+        "extra_args": [
+          "--new-window"
+        ]
+      }
+    },
+    {
+      "id": "profile-b",
+      "name": "资料 B",
+      "enabled": true,
+      "source": "${ROOT}/data/source/profile-b",
+      "config": "xray-runtime.json",
+      "http_port": 0,
+      "chrome": {
+        "user_data_dir": "${ROOT}/data/chrome/profile-b",
+        "profile_directory": "Default",
+        "use_startup_urls": true,
+        "startup_urls": [],
+        "extra_args": [
+          "--new-window"
+        ]
+      }
+    },
+    {
+      "id": "direct",
+      "name": "直连 + 分流",
+      "enabled": true,
+      "config": "xray-runtime.json",
+      "http_port": 0,
+      "chrome": {
+        "user_data_dir": "${ROOT}/data/chrome/direct",
+        "profile_directory": "Default",
+        "pac": "system.pac",
+        "pac_port": 0,
+        "use_startup_urls": true,
+        "startup_urls": [],
+        "extra_args": [
+          "--new-window"
+        ]
+      }
+    }
+  ],
+  "_说明": "本文件是你的本地配置，已在 .gitignore 里，不会被提交。\n路径可以写 ${ROOT} 表示本程序目录，搬到哪台机器都不用改。\nhttp_port / port 写 0 = 启动时随机分配（见 var/run/ports.json），不要手填固定值。\npac_server.video_line / default_line：PAC 里「视频优先」和「默认」分别指向哪条线路。"
+}

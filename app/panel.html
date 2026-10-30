@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>Chrome 代理管家</title>
+<style>
+  :root{
+    --bg:#f3f4f7; --card:#ffffff; --line:#e6e8ee;
+    --txt:#1d2026; --sub:#6b7280; --blue:#1a73e8;
+    --ok:#22a05a; --warn:#e6a01e; --bad:#c83c3c; --idle:#9aa0aa;
+    --shadow:0 1px 2px rgba(16,24,40,.06),0 1px 3px rgba(16,24,40,.10);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{
+    background:var(--bg); color:var(--txt);
+    font-family:"Microsoft YaHei UI","Microsoft YaHei","PingFang SC",system-ui,sans-serif;
+    font-size:14px; -webkit-font-smoothing:antialiased;
+    user-select:none; overflow-y:auto;
+  }
+  .wrap{padding:18px 20px 16px; max-width:740px; margin:0 auto}
+
+  /* 顶部 */
+  header{display:flex; align-items:center; gap:12px; margin-bottom:16px}
+  header .logo{
+    width:38px;height:38px;border-radius:11px;background:var(--blue);
+    display:flex;align-items:center;justify-content:center;flex:none;
+    box-shadow:0 2px 6px rgba(26,115,232,.30);
+  }
+  header .logo i{width:16px;height:16px;border-radius:50%;background:#fff;display:block}
+  header .t1{font-size:16px;font-weight:600;letter-spacing:.2px}
+  header .t2{font-size:12px;color:var(--sub);margin-top:2px}
+  .badge{
+    margin-left:auto;display:flex;align-items:center;gap:8px;
+    padding:7px 14px;border-radius:20px;background:#fff;
+    box-shadow:var(--shadow);font-size:13px;font-weight:500;white-space:nowrap
+  }
+  .dot{width:10px;height:10px;border-radius:50%;flex:none;background:var(--idle)}
+  .dot.ok{background:var(--ok)} .dot.warn{background:var(--warn)} .dot.bad{background:var(--bad)}
+  .dot.wait{background:#2158b0}
+
+  /* 线路卡 */
+  .sec-title{font-size:12px;color:var(--sub);margin:16px 2px 8px;font-weight:600;letter-spacing:.5px}
+  .card{background:var(--card);border-radius:13px;box-shadow:var(--shadow);overflow:hidden}
+  .row{
+    display:flex;align-items:center;gap:12px;padding:13px 16px;
+    border-bottom:1px solid var(--line);
+  }
+  .row:last-child{border-bottom:none}
+  .row .name{font-weight:600;font-size:14px}
+  .row .meta{font-size:12px;color:var(--sub);margin-top:3px;word-break:break-all}
+  .row .grow{flex:1;min-width:0}
+  .pill{
+    font-size:12px;padding:3px 9px;border-radius:20px;font-weight:500;
+    background:#f1f3f7;color:var(--sub);white-space:nowrap
+  }
+  .pill.on{background:#e6f6ed;color:#177a45}
+  .pill.off{background:#fdeaea;color:#b32d2d}
+  .pill.warn{background:#fef3e2;color:#9a5b00}
+  .pill.wait{background:#e8effc;color:#2158b0}
+  .pill.win{background:#eef1f6;color:#252a33}
+  .pill.idle{background:transparent;color:#9aa3b0;border:1px dashed #d8dde6}
+  .pill.data{background:#f3edfd;color:#5b32a8}
+
+  /* 登录态告警条：路径被改 / 谷歌 Cookie 变少时贴在那一行下面 */
+  .warnbar{
+    margin:0 16px 12px;padding:9px 12px;border-radius:9px;
+    background:#fef3e2;color:#8a4b00;border-left:3px solid var(--warn);
+    font-size:12px;line-height:1.65;white-space:pre-wrap;word-break:break-word;
+  }
+  .warnbar b{color:#7a3f00}
+
+  button{
+    font-family:inherit;font-size:13px;border:none;border-radius:9px;
+    padding:8px 14px;cursor:pointer;background:#eef1f6;color:#252a33;
+    font-weight:500;transition:filter .12s,background .12s;
+  }
+  button:hover{filter:brightness(.96)}
+  button:active{filter:brightness(.9)}
+  button.primary{background:var(--blue);color:#fff}
+  button.ghost{background:#fff;box-shadow:var(--shadow)}
+  button:disabled{opacity:.5;cursor:default;filter:none}
+  .btns{display:flex;flex-wrap:wrap;gap:9px;padding:14px 16px}
+
+  /* 设置行 */
+  .setrow{display:flex;align-items:center;gap:12px;padding:13px 16px;border-bottom:1px solid var(--line)}
+  .setrow:last-child{border-bottom:none}
+  .setrow .grow{flex:1}
+  .setrow .lab{font-weight:500}
+  .setrow .hint{font-size:12px;color:var(--sub);margin-top:2px}
+
+  /* 开关 */
+  .sw{width:44px;height:25px;border-radius:20px;background:#d3d7de;position:relative;cursor:pointer;transition:background .15s;flex:none}
+  .sw::after{content:"";position:absolute;top:3px;left:3px;width:19px;height:19px;border-radius:50%;background:#fff;
+             transition:left .15s;box-shadow:0 1px 2px rgba(0,0,0,.2)}
+  .sw.on{background:var(--ok)}
+  .sw.on::after{left:22px}
+
+  footer{
+    margin-top:14px;display:flex;align-items:center;gap:10px;
+    font-size:12px;color:var(--sub);min-height:18px
+  }
+  .spin{width:12px;height:12px;border:2px solid #cfd4dc;border-top-color:var(--blue);border-radius:50%;
+        animation:sp .7s linear infinite;display:none}
+  .spin.on{display:inline-block}
+  @keyframes sp{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo"><i></i></div>
+    <div>
+      <div class="t1">Chrome 代理管家</div>
+      <div class="t2">每条线路一份独立资料，只给 Chrome 用代理</div>
+    </div>
+    <div class="badge"><span class="dot" id="topdot"></span><span id="toptext">正在检测…</span></div>
+  </header>
+
+  <div class="sec-title">线路（每条线一个独立数据文件夹，互不干扰）</div>
+  <div class="card" id="lines"></div>
+
+  <div class="sec-title">重点网址（自动挑能打开的线路）</div>
+  <div class="card" id="targets"></div>
+
+  <div class="sec-title">操作</div>
+  <div class="card">
+    <div class="btns">
+      <button class="primary" onclick="act('start')">启动全部线路</button>
+      <button onclick="act('restart')">测速优化并重启</button>
+      <button onclick="act('stop')">停止全部线路</button>
+      <button onclick="act('check')">检查连通性</button>
+    </div>
+  </div>
+
+  <div class="sec-title">设置</div>
+  <div class="card">
+    <div class="setrow">
+      <div class="grow">
+        <div class="lab">开机自启</div>
+        <div class="hint">开机后自动在右下角待命，第一次点链接不用等</div>
+      </div>
+      <div class="sw" id="swauto" onclick="act('autostart')"></div>
+    </div>
+    <div class="setrow">
+      <div class="grow">
+        <div class="lab">日志与目录</div>
+        <div class="hint">日志在 var\logs，数据在 data\chrome\&lt;线路&gt;</div>
+      </div>
+      <button class="ghost" onclick="act('openlog')">打开日志</button>
+      <button class="ghost" onclick="act('opendata')">数据文件夹</button>
+      <button class="ghost" onclick="act('opendir')">程序文件夹</button>
+    </div>
+    <div class="setrow">
+      <div class="grow">
+        <div class="lab">退出管家</div>
+        <div class="hint">退出后所有线路会停止，已打开的 Chrome 窗口将无法出网</div>
+      </div>
+      <button class="ghost" onclick="act('quit')">退出</button>
+    </div>
+  </div>
+
+  <footer>
+    <span class="spin" id="spin"></span>
+    <span id="msg">就绪</span>
+  </footer>
+</div>
+
+<script>
+let BUSY = false;
+
+function fmtPort(l){ return l.detail || (l.pac ? 'PAC ' + l.port : '端口 ' + l.port); }
+
+function escHtml(s){
+  return String(s == null ? '' : s).replace(/[&<>"]/g, function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];
+  });
+}
+// 资料目录太长会撑破布局，只留尾部；但要能看出「哪条线 = 哪个文件夹」
+function fmtDir(l){
+  if (!l.data_dir) return '';
+  var d = String(l.data_dir);
+  return d.length > 38 ? '…' + d.slice(-37) : d;
+}
+
+// 五种状态必须一眼分得开：管家在管 / 遗留孤儿 / 被别人占 / 正在起 / 没跑
+// 第六种「待机」= 按需模式下属正常：这条线现在没开窗口，内核本来就不该跑
+const LINE_STATE = {
+  running:  {cls:'on',   dot:'ok',   text:'运行中', btn:'打开 Chrome'},
+  orphan:   {cls:'warn', dot:'warn', text:'遗留',   btn:'接管'},
+  foreign:  {cls:'warn', dot:'warn', text:'被占用', btn:'打开 Chrome'},
+  starting: {cls:'wait', dot:'wait', text:'启动中', btn:'打开 Chrome'},
+  idle:     {cls:'idle', dot:'',     text:'待机',   btn:'打开 Chrome'},
+  stopped:  {cls:'off',  dot:'bad',  text:'未运行', btn:'启动并打开'}
+};
+function lineBadge(l){
+  // 没窗口、也没被标记需要 → 待机（按需启动的常态），不能标成红色故障
+  if (l.state === 'stopped' && l.desired === false && !l.windows) return LINE_STATE.idle;
+  return LINE_STATE[l.state] || (l.ok ? LINE_STATE.running : LINE_STATE.stopped);
+}
+
+function render(s){
+  const top = document.getElementById('topdot');
+  top.className = 'dot ' + (s.level || '');
+  document.getElementById('toptext').textContent = s.text || '—';
+
+  const box = document.getElementById('lines');
+  const html = (s.lines||[]).map(function(l){
+    const b = lineBadge(l);
+    const st = '<span class="pill ' + b.cls + '">' + b.text + '</span>';
+    // 内核是内核，窗口是窗口 —— 两个标签分开，别让一个绿点背两件事
+    const winPill = l.windows > 0
+      ? '<span class="pill win">窗口 ' + l.windows + '</span>'
+      : '<span class="pill idle">无窗口</span>';
+    const urlTxt = l.startup_urls ? ' · 启动页 ' + l.startup_urls : '';
+    // 登录态告警（后端 line.status() 里带出来的）—— 必须显式贴出来，
+    // 否则「打开发现没登录」又要靠猜是谁弄的。
+    const warn = (l.login_warn && l.login_warn.length)
+      ? '<div class="warnbar">⚠ ' + l.login_warn.map(escHtml).join('\n⚠ ') + '</div>'
+      : '';
+    return '<div class="row">' +
+      '<span class="dot ' + b.dot + '"></span>' +
+      '<div class="grow"><div class="name">' + l.name +
+        ' <span class="pill data">资料 ' + l.id + '</span></div>' +
+      '<div class="meta">' + fmtPort(l) + ' · ' + escHtml(fmtDir(l)) + urlTxt + '</div></div>' +
+      st + winPill +
+      '<button class="ghost" onclick="act(\'' + (l.state === 'orphan' ? 'adopt' : 'open') + '\',\'' + l.id + '\')">' + b.btn + '</button>' +
+    '</div>' + warn;
+  }).join('');
+  if (box.dataset.sig !== html){ box.innerHTML = html; box.dataset.sig = html; }
+
+  const tbox = document.getElementById('targets');
+  const thtml = (s.targets||[]).map(function(t){
+    const st = t.ok ? '<span class="pill on">可打开</span>'
+                    : '<span class="pill off">打不开</span>';
+    return '<div class="row">' +
+      '<span class="dot ' + (t.ok ? 'ok' : 'bad') + '"></span>' +
+      '<div class="grow"><div class="name">' + t.name + '</div>' +
+      '<div class="meta">' + (t.detail || '') + '</div></div>' +
+      st +
+      '<button class="ghost" onclick="act(\'opentarget\',\'' + t.id + '\')">打开</button>' +
+    '</div>';
+  }).join('');
+  if (tbox.dataset.sig !== thtml){ tbox.innerHTML = thtml; tbox.dataset.sig = thtml; }
+
+  const sw = document.getElementById('swauto');
+  sw.classList.toggle('on', !!s.autostart);
+}
+
+function setBusy(b){
+  BUSY = b;
+  document.getElementById('spin').classList.toggle('on', b);
+  document.querySelectorAll('button').forEach(function(x){ x.disabled = b; });
+}
+
+async function pull(){
+  try {
+    if (!window.pywebview || !window.pywebview.api) {
+      document.getElementById('msg').textContent = '等待接口就绪…';
+      return;
+    }
+    const s = await window.pywebview.api.status();
+    render(s);
+    if (!BUSY) setBusy(!!s.busy);
+    document.getElementById('msg').textContent = '就绪';
+  } catch(e) {
+    document.getElementById('msg').textContent =
+      '接口异常：' + (e && e.message ? e.message : e);
+  }
+}
+
+async function act(name, arg){
+  if (BUSY) return;
+  setBusy(true);
+  document.getElementById('msg').textContent = '执行中…';
+  try {
+    const r = await window.pywebview.api.act(name, arg || null);
+    document.getElementById('msg').textContent = r.msg || (r.ok ? '完成' : '失败');
+  } catch(e) {
+    document.getElementById('msg').textContent = '调用失败：' + e;
+  } finally {
+    setBusy(false);
+    pull();
+  }
+}
+
+let STARTED = false;
+
+function boot(){
+  if (STARTED) return;
+  STARTED = true;
+  pull();
+  setInterval(pull, 1500);
+}
+
+window.addEventListener('pywebviewready', boot);
+document.addEventListener('DOMContentLoaded', function(){ setTimeout(boot, 1500); });
+</script>
+</body>
+</html>
